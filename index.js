@@ -28,12 +28,11 @@ async function getProductById(id) {
   }
 }
 
-async function createProduct(productData) {
+async function createProduct(product) {
   try {
     const res = await fetch("https://fakestoreapi.com/products", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(productData),
+      body: JSON.stringify(product),
     });
     if (!res.ok) {
       throw new Error(`Error HTTP! status: ${res.status}`);
@@ -54,13 +53,14 @@ async function deleteProduct(id) {
       throw new Error(`Error HTTP! status: ${res.status}`);
     }
     const data = await res.json();
+    console.log(`Producto con ID: ${id} eliminado exitosamente.`);
     return data;
   } catch (error) {
     console.error(`Error eliminando producto con ID: ${id}`, error);
   }
 }
 
-const [, , method, endpoint] = process.argv;
+const [, , method, endpoint, title, price, category] = process.argv;
 const endpointEstandar = endpoint?.replace(/^\/+/, "");
 
 if (
@@ -76,10 +76,7 @@ switch (method) {
   case "GET":
     if (endpointEstandar?.startsWith("products/")) {
       const id = endpointEstandar.split("/")[1];
-      if (!id || isNaN(Number(id))) {
-        console.log(
-          "Endpoint no válido. Use products/:id para consultar un producto.",
-        );
+      if (!validarIdProducto(id, "consultar")) {
         break;
       }
 
@@ -87,36 +84,52 @@ switch (method) {
       console.log(product);
       break;
     }
-
     const products = await getAllProducts();
     console.log(products);
     break;
   case "POST":
-    if (endpointEstandar === "products") {
-      const products = await createProduct();
-      console.log(products);
-    } else {
+    if (endpointEstandar !== "products") {
       console.log(
-        "Endpoint no válido. Use products para traer todos los productos o products/:id para traer un solo producto.",
-      );
-    }
-    break;
-  case "DELETE":
-    if (!endpointEstandar.startsWith("products/")) {
-      console.log(
-        "Endpoint no válido. Use products/:id para eliminar el producto.",
+        "Endpoint no válido. Para crear un producto utilice: products",
       );
       break;
     }
-
-    const id = endpointEstandar.split("/")[1];
-    if (!id || isNaN(Number(id))) {
+    if (!title || !price || !category) {
       console.log(
-        "Endpoint no válido. Use products/:id para eliminar el producto.",
+        "Faltan datos. Utilice: POST products <title> <price> <category>",
       );
+      break;
+    }
+    const productNew = {
+      title,
+      price: Number(price),
+      category,
+    };
+    const createdProduct = await createProduct(productNew);
+
+    console.log(
+      `Producto "${productNew.title}" creado exitosamente con ID: ${createdProduct.id}`,
+    );
+    break;
+
+  case "DELETE":
+    const id = endpointEstandar.split("/")[1];
+    if (!validarIdProducto(id, "eliminar")) {
       break;
     }
     const product = await deleteProduct(id);
-    console.log("Producto Eliminado: ", product);
+    console.log(
+      `Producto ${product.title} con ID: ${id} eliminado exitosamente.`,
+    );
     break;
+}
+
+function validarIdProducto(id, mensaje) {
+  if (!id || isNaN(Number(id))) {
+    console.log(
+      `Endpoint no válido. Utilice products/:id para ${mensaje} el producto.`,
+    );
+    return false;
+  }
+  return true;
 }
