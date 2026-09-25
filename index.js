@@ -27,6 +27,7 @@ async function getProductById(id) {
 async function createProduct(product) {
   return await requestApi("https://fakestoreapi.com/products", {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(product),
   });
 }
@@ -34,6 +35,7 @@ async function createProduct(product) {
 async function deleteProduct(id) {
   return await requestApi(`https://fakestoreapi.com/products/${id}`, {
     method: "DELETE",
+    headers: { "Content-Type": "application/json" },
   });
 }
 
@@ -47,20 +49,13 @@ if (!validarEndpoint(endpointEstandar)) {
 switch (method) {
   case "GET":
     if (endpointEstandar?.startsWith("products/")) {
-      const id = obtenerIdProducto(endpointEstandar);
-
-      if (!id) {
-        console.log("Endpoint no válido. Utilice products/:id.");
-        break;
-      }
-
-      const product = await getProductById(id);
-      console.log(product);
+      await handleGetProductById(endpoint);
       break;
     }
-    const products = await getAllProducts();
-    console.log(products);
-    break;
+    if (endpointEstandar === "products") {
+      await handleGetAllProducts();
+      break;
+    }
   case "POST":
     if (endpointEstandar !== "products") {
       console.log(
@@ -98,6 +93,32 @@ switch (method) {
       `Producto ${product.title} con ID: ${id} eliminado exitosamente.`,
     );
     break;
+  default:
+    console.log("Método no válido. Utilice GET, POST o DELETE.");
+}
+
+async function handleGetAllProducts() {
+  if (process.argv.length !== 4) {
+    console.log(
+      "Endpoint no válido. GET products no acepta argumentos adicionales.",
+    );
+    return;
+  }
+
+  const products = await getAllProducts();
+  console.log(products);
+}
+
+async function handleGetProductById(endpoint) {
+  const id = obtenerIdProducto(endpoint);
+
+  if (!id) {
+    console.log("Endpoint no válido. Utilice products/:id.");
+    return;
+  }
+
+  const product = await getProductById(id);
+  console.log(product);
 }
 
 function validarEndpoint(endpoint) {
@@ -123,4 +144,3 @@ function obtenerIdProducto(endpoint) {
 
   return partes[1];
 }
-subir la refactorizacion
