@@ -1,82 +1,56 @@
-async function getAllProducts() {
+async function requestApi(url, options = {}) {
   try {
-    const res = await fetch("https://fakestoreapi.com/products", {
-      method: "GET",
-    });
+    const res = await fetch(url, options);
+
     if (!res.ok) {
       throw new Error(`Error HTTP! status: ${res.status}`);
     }
-    const data = await res.json();
-    return data;
+
+    return await res.json();
   } catch (error) {
-    console.error("Error obteniendo productos:", error);
+    console.error("Error en la petición:", error);
   }
+}
+
+async function getAllProducts() {
+  return await requestApi("https://fakestoreapi.com/products", {
+    method: "GET",
+  });
 }
 
 async function getProductById(id) {
-  try {
-    const res = await fetch(`https://fakestoreapi.com/products/${id}`, {
-      method: "GET",
-    });
-    if (!res.ok) {
-      throw new Error(`Error HTTP! status: ${res.status}`);
-    }
-    const data = await res.json();
-    return data;
-  } catch (error) {
-    console.error(`Error obteniendo producto con ID: ${id}`, error);
-  }
+  return await requestApi(`https://fakestoreapi.com/products/${id}`, {
+    method: "GET",
+  });
 }
 
 async function createProduct(product) {
-  try {
-    const res = await fetch("https://fakestoreapi.com/products", {
-      method: "POST",
-      body: JSON.stringify(product),
-    });
-    if (!res.ok) {
-      throw new Error(`Error HTTP! status: ${res.status}`);
-    }
-    const data = await res.json();
-    return data;
-  } catch (error) {
-    console.error(`Error creando el producto:`, error);
-  }
+  return await requestApi("https://fakestoreapi.com/products", {
+    method: "POST",
+    body: JSON.stringify(product),
+  });
 }
 
 async function deleteProduct(id) {
-  try {
-    const res = await fetch(`https://fakestoreapi.com/products/${id}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) {
-      throw new Error(`Error HTTP! status: ${res.status}`);
-    }
-    const data = await res.json();
-    console.log(`Producto con ID: ${id} eliminado exitosamente.`);
-    return data;
-  } catch (error) {
-    console.error(`Error eliminando producto con ID: ${id}`, error);
-  }
+  return await requestApi(`https://fakestoreapi.com/products/${id}`, {
+    method: "DELETE",
+  });
 }
 
 const [, , method, endpoint, title, price, category] = process.argv;
 const endpointEstandar = endpoint?.replace(/^\/+/, "");
 
-if (
-  !(
-    endpointEstandar === "products" || endpointEstandar?.startsWith("products/")
-  )
-) {
-  console.log("Endpoint no válido.");
+if (!validarEndpoint(endpointEstandar)) {
   process.exit(1);
 }
 
 switch (method) {
   case "GET":
     if (endpointEstandar?.startsWith("products/")) {
-      const id = endpointEstandar.split("/")[1];
-      if (!validarIdProducto(id, "consultar")) {
+      const id = obtenerIdProducto(endpointEstandar);
+
+      if (!id) {
+        console.log("Endpoint no válido. Utilice products/:id.");
         break;
       }
 
@@ -113,8 +87,10 @@ switch (method) {
     break;
 
   case "DELETE":
-    const id = endpointEstandar.split("/")[1];
-    if (!validarIdProducto(id, "eliminar")) {
+    const id = obtenerIdProducto(endpointEstandar);
+
+    if (!id) {
+      console.log("Endpoint no válido. Utilice products/:id.");
       break;
     }
     const product = await deleteProduct(id);
@@ -124,12 +100,27 @@ switch (method) {
     break;
 }
 
-function validarIdProducto(id, mensaje) {
-  if (!id || isNaN(Number(id))) {
-    console.log(
-      `Endpoint no válido. Utilice products/:id para ${mensaje} el producto.`,
-    );
+function validarEndpoint(endpoint) {
+  if (endpoint !== "products" && !endpoint?.startsWith("products/")) {
+    console.log("Endpoint no válido.");
     return false;
   }
+
   return true;
 }
+
+function obtenerIdProducto(endpoint) {
+  const partes = endpoint.split("/");
+
+  if (
+    partes.length !== 2 ||
+    partes[0] !== "products" ||
+    !partes[1] ||
+    isNaN(Number(partes[1]))
+  ) {
+    return null;
+  }
+
+  return partes[1];
+}
+subir la refactorizacion
